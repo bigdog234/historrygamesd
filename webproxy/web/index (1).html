@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap" rel="stylesheet"> 
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet"> 
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="__alloy_style.css" rel="stylesheet">
+</head>
+<body >
+<div class="container">
+<p>AlloyProxy</p>
+<form class="url" method="POST" action="/proxy/session/">
+    <input placeholder="https://www.google.com" name="url" id="iurl" type="text">
+    <button type="submit" id="btn">Go!</button>
+    <a href="https://github.com/titaniumnetwork-dev/alloyproxy">Fork on GitHub!</a>
+</form>
+
+<div class="terminal-container">
+    <div class="terminal-header">
+        <span>Terminal</span>
+        <button id="clear-terminal">Clear</button>
+    </div>
+    <div id="terminal-output"></div>
+    <div class="terminal-input-container">
+        <span>$</span>
+        <input type="text" id="terminal-input" placeholder="Enter shell commands...">
+    </div>
+</div>
+</div>
+</div>
+
+<script>
+// Terminal functionality
+const terminalOutput = document.getElementById('terminal-output');
+const terminalInput = document.getElementById('terminal-input');
+const clearTerminalBtn = document.getElementById('clear-terminal');
+
+function addToTerminal(message, type = 'output') {
+    const div = document.createElement('div');
+    div.className = `terminal-${type}`;
+    div.textContent = message;
+    terminalOutput.appendChild(div);
+    terminalOutput.scrollTop = terminalOutput.scrollHeight;
+}
+
+async function executeCommand(command) {
+    addToTerminal(`$ ${command}`, 'input');
+    
+    try {
+        const response = await fetch('/execute-command', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ command: command })
+        });
+        
+        const result = await response.json();
+        
+        if (result.error) {
+            addToTerminal(result.error, 'error');
+        } else {
+            if (result.stdout) {
+                addToTerminal(result.stdout, 'output');
+            }
+            if (result.stderr) {
+                addToTerminal(result.stderr, 'error');
+            }
+        }
+    } catch (error) {
+        addToTerminal(`Error: ${error.message}`, 'error');
+    }
+}
+
+terminalInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        const command = this.value.trim();
+        if (command) {
+            executeCommand(command);
+            this.value = '';
+        }
+    }
+});
+
+clearTerminalBtn.addEventListener('click', function() {
+    terminalOutput.innerHTML = '';
+});
+
+addToTerminal('Terminal ready. Type shell commands and press Enter.', 'info');
+</script>
+</body>
+</html>
